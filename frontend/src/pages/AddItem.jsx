@@ -91,7 +91,7 @@ const AddItem = () => {
             </label>
             <input
               type="text"
-              placeholder="Enter Shop Name"
+              placeholder="Enter Food Name"
               className="w-full px-4 py-2 border rounded-lg focus:outline-white focus:ring-2 focus:ring-orange-500"
               onChange={(e) => setName(e.target.value)}
               value={name}

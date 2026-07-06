@@ -2,7 +2,12 @@ import mongoose from "mongoose";
 
 const shopOrderItemSchema = new mongoose.Schema(
   {
-    items: { type: mongoose.Schema.Types.ObjectId, ref: "Item" },
+    item: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Item",
+      required: true,
+    },
+    name: String,
     price: Number,
     quantity: Number,
   },
@@ -19,8 +24,18 @@ const shopOrderSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-    subTotal: Number,
+    subtotal: Number,
     shopOrderItems: [shopOrderItemSchema],
+    status: {
+      type: String,
+      enum: ["pending", "preparing", "out of delivery", "delivered"],
+      default: "pending",
+    },
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "DeliveryAssignment",
+      default: null,
+    },
   },
   { timestamps: true },
 );
@@ -43,7 +58,7 @@ const orderSchema = new mongoose.Schema(
     totalAmount: {
       type: Number,
     },
-    shopOrder: [shopOrderSchema],
+    shopOrders: [shopOrderSchema],
   },
   { timestamps: true },
 );

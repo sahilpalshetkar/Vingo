@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const deliveryAssignmentSchema = new mongoose.Schema(
+const DeliveryAssignmentSchema = new mongoose.Schema(
   {
     order: {
       type: mongoose.Schema.Types.ObjectId,
@@ -37,6 +37,6 @@ const deliveryAssignmentSchema = new mongoose.Schema(
 
 const DeliveryAssignment = mongoose.model(
   "DeliveryAssignment",
-  deliveryAssignmentSchema,
+  DeliveryAssignmentSchema,
 );
 export default DeliveryAssignment;

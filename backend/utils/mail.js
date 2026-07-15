@@ -13,18 +13,19 @@ const transporter = nodemailer.createTransport({
 });
 
 export const sendOtpMail = async (to, otp) => {
-  try {
-    console.log("Sending OTP to:", to);
+  await transporter.sendMail({
+    from: process.env.EMAIL,
+    to,
+    subject: "Reset Your Password",
+    html: `<p>Your OTP for password reset is <b>${otp}</b>. It expires in 5 minutes.</p>`,
+  });
+};
 
-    const info = await transporter.sendMail({
-      from: process.env.EMAIL,
-      to,
-      subject: "Reset Your Password",
-      html: `<p>Your OTP for password reset is <b>${otp}</b>. It expires in 5 minutes.</p>`,
-    });
-
-    console.log("Mail sent:", info.response);
-  } catch (error) {
-    console.log("Mail error:", error.message);
-  }
+export const sendDeliveryOtpMail = async (user, otp) => {
+  await transporter.sendMail({
+    from: process.env.EMAIL,
+    to: user.email,
+    subject: "Delivery OTP",
+    html: `<p>Your OTP for Delivery is <b>${otp}</b>. It expires in 5 minutes.</p>`,
+  });
 };

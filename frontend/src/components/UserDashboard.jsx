@@ -7,6 +7,7 @@ import { FaCircleChevronLeft } from "react-icons/fa6";
 import { FaCircleChevronRight } from "react-icons/fa6";
 import { useSelector } from "react-redux";
 import FoodCard from "./FoodCard";
+import { useNavigate } from "react-router-dom";
 
 const UserDashboard = () => {
   const { currentCity, shopsInMyCity, itemsInMyCity } = useSelector(
@@ -14,10 +15,25 @@ const UserDashboard = () => {
   );
   const cateScrollRef = useRef();
   const shopScrollRef = useRef();
+  const navigate = useNavigate();
   const [showLeftCateButton, setShowLeftCateButton] = useState(false);
   const [showRightCateButton, setShowRightCateButton] = useState(false);
   const [showLeftShopButton, setShowLeftShopButton] = useState(false);
   const [showRightShopButton, setShowRightShopButton] = useState(false);
+  const [updatedItemsList, setUpdatedItemsList] = useState([]);
+
+  const handleFilterByCategory = (category) => {
+    if (category == "All") {
+      setUpdatedItemsList(itemsInMyCity);
+    } else {
+      const filteredList = itemsInMyCity.filter((i) => i.category === category);
+      setUpdatedItemsList(filteredList);
+    }
+  };
+
+  useEffect(() => {
+    setUpdatedItemsList(itemsInMyCity);
+  }, [itemsInMyCity]);
 
   const updateButton = (ref, setLeftButton, setRightButton) => {
     const element = ref.current;
@@ -99,6 +115,7 @@ const UserDashboard = () => {
                 name={cate.category}
                 image={cate.image}
                 key={index}
+                onClick={() => handleFilterByCategory(cate.category)}
               />
             ))}
           </div>
@@ -136,6 +153,7 @@ const UserDashboard = () => {
                 name={shop.name}
                 image={shop.image}
                 key={shop._id}
+                onClick={() => navigate(`/shop/${shop._id}`)}
               />
             ))}
           </div>
@@ -155,7 +173,7 @@ const UserDashboard = () => {
         </h1>
 
         <div className="w-full h-auto flex flex-wrap gap-5 justify-center">
-          {itemsInMyCity?.map((item) => (
+          {updatedItemsList?.map((item) => (
             <FoodCard key={item._id} data={item} />
           ))}
         </div>

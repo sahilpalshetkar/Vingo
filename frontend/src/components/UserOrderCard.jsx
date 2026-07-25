@@ -21,15 +21,22 @@ function UserOrderCard({ data }) {
           </p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-gray-500">
-            {data.paymentMethod?.toUpperCase()}
-          </p>
+          {data.paymentMethod == "cod" ? (
+            <p className="text-sm text-gray-500">
+              {data.paymentMethod?.toUpperCase()}
+            </p>
+          ) : (
+            <p className="text-sm text-gray-500 font-semibold">
+              Payment: {data.payment ? "true" : "false"}
+            </p>
+          )}
+
           <p className="font-medium text-blue-600">
-            {data.shopOrders?.[0].status}
+            {data.shopOrders?.[0]?.status}
           </p>
         </div>
       </div>
-      {data.shopOrders.map((shopOrder, index) => (
+      {data.shopOrders?.map((shopOrder, index) => (
         <div
           className="*border rounded-lg p-3 bg-[#fffaf7] space-y-3"
           key={index}
@@ -47,7 +54,7 @@ function UserOrderCard({ data }) {
                   alt=""
                   className="w-full h-24 object-cover rounded"
                 />
-                <p className="text-sm font-semibold mt-1">{item.name}</p>
+                <p className="text-sm font-semibold mt-1">{item.item.name}</p>
                 <p className="text-xs text-gray-500">
                   Qty: {item.quantity} x ₹{item.price}
                 </p>

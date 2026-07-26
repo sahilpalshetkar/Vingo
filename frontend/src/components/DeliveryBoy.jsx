@@ -6,7 +6,7 @@ import { serverUrl } from "../App";
 import DeliveryBoyTracking from "./DeliveryBoyTracking";
 
 const DeliveryBoy = () => {
-  const { userData } = useSelector((state) => state.user);
+  const { userData, socket } = useSelector((state) => state.user);
   const [availableAssignments, setAvailableAssignments] = useState([]);
   const [currentOrder, setCurrentOrder] = useState();
   const [showOtpBox, setShowOtpBox] = useState(false);
@@ -17,6 +17,21 @@ const DeliveryBoy = () => {
         withCredentials: true,
       });
       setAvailableAssignments(result.data);
+    } catch (error) {
+      console.log(error?.response?.data);
+    }
+  };
+
+  const getCurrentOrder = async () => {
+    try {
+      const result = await axios.get(
+        `${serverUrl}/api/order/get-current-order`,
+        {
+          withCredentials: true,
+        },
+      );
+      setCurrentOrder(result.data);
+      console.log(result.data);
     } catch (error) {
       console.log(error?.response?.data);
     }
@@ -69,20 +84,16 @@ const DeliveryBoy = () => {
     }
   };
 
-  const getCurrentOrder = async () => {
-    try {
-      const result = await axios.get(
-        `${serverUrl}/api/order/get-current-order`,
-        {
-          withCredentials: true,
-        },
-      );
-      setCurrentOrder(result.data);
-      console.log(result.data);
-    } catch (error) {
-      console.log(error?.response?.data);
-    }
-  };
+  useEffect(() => {
+    socket?.on("newAssignment", (data) => {
+      if (data.sentTo == userData._id) {
+        setAvailableAssignments((prev) => [data, ...prev]);
+      }
+    });
+    return () => {
+      socket?.off("newAssignment");
+    };
+  }, [userData._id]);
 
   useEffect(() => {
     if (userData?._id) {

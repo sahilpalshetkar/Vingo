@@ -11,6 +11,36 @@ const DeliveryBoy = () => {
   const [currentOrder, setCurrentOrder] = useState();
   const [showOtpBox, setShowOtpBox] = useState(false);
   const [otp, setOtp] = useState("");
+  const [deliveryBoyLocation, setDeliveryBoyLocation] = useState(null);
+
+  useEffect(() => {
+    if (!socket || userData.role !== "deliveryBoy") return;
+    let watchId;
+    if (navigator.geolocation) {
+      ((watchId = navigator.geolocation.watchPosition((position) => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        setDeliveryBoyLocation({ lat: latitude, lon: longitude });
+
+        socket.emit("updateLocation", {
+          latitude,
+          longitude,
+          userId: userData._id,
+        });
+      })),
+        (error) => {
+          console.log(error);
+        },
+        {
+          enableHighAccuracy: true,
+        });
+    }
+
+    return () => {
+      if (watchId) navigator.geolocation.clearWatch(watchId);
+    };
+  }, [socket, userData]);
+
   const getAssignments = async () => {
     try {
       const result = await axios.get(`${serverUrl}/api/order/get-assignments`, {
@@ -112,9 +142,9 @@ const DeliveryBoy = () => {
           </h1>
           <p className="text-[#ff4d2d]">
             <span className="font-semibold">Latitude:</span>{" "}
-            {userData.location.coordinates?.[1]},{" "}
+            {deliveryBoyLocation?.lat},{" "}
             <span className="font-semibold">Longitude: </span>
-            {userData.location.coordinates?.[0]}
+            {deliveryBoyLocation?.lon}
           </p>
         </div>
         {!currentOrder && (
@@ -171,7 +201,18 @@ const DeliveryBoy = () => {
                 {currentOrder.shopOrder?.subtotal}
               </p>
             </div>
-            <DeliveryBoyTracking data={currentOrder} />
+            <DeliveryBoyTracking
+              data={{
+                deliveryBoyLocation: deliveryBoyLocation || {
+                  lat: userData.location.coordinates[1],
+                  lon: userData.location.coordinates[0],
+                },
+                customerLocation: {
+                  lat: currentOrder.deliveryAddress.latitude,
+                  lon: currentOrder.deliveryAddress.longitude,
+                },
+              }}
+            />
             {!showOtpBox ? (
               <button
                 className="mt-4 w-full bg-green-500 text-white font-semibold py-2 px-4 rounded-xl shadow-md hover:bg-green-600 active:scale-95 transition-all duration-200"

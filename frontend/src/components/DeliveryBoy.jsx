@@ -4,6 +4,16 @@ import { useSelector } from "react-redux";
 import axios from "axios";
 import { serverUrl } from "../App";
 import DeliveryBoyTracking from "./DeliveryBoyTracking";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { ClipLoader } from "react-spinners";
 
 const DeliveryBoy = () => {
   const { userData, socket } = useSelector((state) => state.user);
@@ -12,34 +22,45 @@ const DeliveryBoy = () => {
   const [showOtpBox, setShowOtpBox] = useState(false);
   const [otp, setOtp] = useState("");
   const [deliveryBoyLocation, setDeliveryBoyLocation] = useState(null);
+  const [todayDeliveries, setTodayDeliveries] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (!socket || userData.role !== "deliveryBoy") return;
     let watchId;
     if (navigator.geolocation) {
-      ((watchId = navigator.geolocation.watchPosition((position) => {
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
-        setDeliveryBoyLocation({ lat: latitude, lon: longitude });
+      watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
+          setDeliveryBoyLocation({ lat: latitude, lon: longitude });
 
-        socket.emit("updateLocation", {
-          latitude,
-          longitude,
-          userId: userData._id,
-        });
-      })),
+          socket.emit("updateLocation", {
+            latitude,
+            longitude,
+            userId: userData._id,
+          });
+        },
         (error) => {
           console.log(error);
         },
         {
           enableHighAccuracy: true,
-        });
+        },
+      );
     }
 
     return () => {
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };
   }, [socket, userData]);
+
+  const ratePerDelivery = 50;
+  const totalEarning = todayDeliveries.reduce(
+    (sum, d) => sum + d.count * ratePerDelivery,
+    0,
+  );
 
   const getAssignments = async () => {
     try {
@@ -81,6 +102,7 @@ const DeliveryBoy = () => {
   };
 
   const sendOtp = async () => {
+    setLoading(true);
     try {
       const result = await axios.post(
         `${serverUrl}/api/order/send-delivery-otp`,
@@ -90,14 +112,17 @@ const DeliveryBoy = () => {
         },
         { withCredentials: true },
       );
+      setLoading(false);
       setShowOtpBox(true);
       console.log(result.data);
     } catch (error) {
       console.log(error?.response?.data);
+      setLoading(false);
     }
   };
 
   const verifyOtp = async () => {
+    setMessage("");
     try {
       const result = await axios.post(
         `${serverUrl}/api/order/verify-delivery-otp`,
@@ -109,6 +134,21 @@ const DeliveryBoy = () => {
         { withCredentials: true },
       );
       console.log(result.data);
+      setMessage(result.data.message);
+      location.reload();
+    } catch (error) {
+      console.log(error?.response?.data);
+    }
+  };
+
+  const handleTodayDeliveries = async () => {
+    try {
+      const result = await axios.get(
+        `${serverUrl}/api/order/get-today-deliveries`,
+        { withCredentials: true },
+      );
+      console.log(result.data);
+      setTodayDeliveries(result.data);
     } catch (error) {
       console.log(error?.response?.data);
     }
@@ -123,12 +163,13 @@ const DeliveryBoy = () => {
     return () => {
       socket?.off("newAssignment");
     };
-  }, [userData._id]);
+  }, [socket, userData._id]);
 
   useEffect(() => {
     if (userData?._id) {
       getAssignments();
       getCurrentOrder();
+      handleTodayDeliveries();
     }
   }, [userData?._id]);
 
@@ -147,6 +188,34 @@ const DeliveryBoy = () => {
             {deliveryBoyLocation?.lon}
           </p>
         </div>
+
+        <div className="bg-white rounded-2xl shadow-md p-5 w-[90%] mb-6 border border-orange-100">
+          <h1 className="text-lg font-bold mb-3 text-[#ff4d2d]">
+            Todays Deliveries
+          </h1>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={todayDeliveries}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="hour" tickFormatter={(h) => `${h}:00`} />
+              <YAxis allowDecimals={false} />
+              <Tooltip
+                formatter={(value) => [value, "orders"]}
+                labelFormatter={(label) => `${label}:00`}
+              />
+              <Bar dataKey="count" fill="#ff4d2d" />
+            </BarChart>
+          </ResponsiveContainer>
+
+          <div className="max-w-sm mx-auto mt-6 p-6 bg-white rounded-2xl shadow-lg text-center">
+            <h1 className="text-xl font-semibold text-gray-800 mb-2">
+              Today's Earning
+            </h1>
+            <span className="text-3xl font-bold text-green-600">
+              ₹{totalEarning}
+            </span>
+          </div>
+        </div>
+
         {!currentOrder && (
           <div className="bg-white rounded-2xl p-5 shadow-md w-[90%] border border-orange-100">
             <h1 className="text-lg font-bold mb-4 flex items-center gap-2">
@@ -217,8 +286,13 @@ const DeliveryBoy = () => {
               <button
                 className="mt-4 w-full bg-green-500 text-white font-semibold py-2 px-4 rounded-xl shadow-md hover:bg-green-600 active:scale-95 transition-all duration-200"
                 onClick={sendOtp}
+                disabled={loading}
               >
-                Mark As Delivered
+                {loading ? (
+                  <ClipLoader size={20} color="white" />
+                ) : (
+                  "Mark As Delivered"
+                )}
               </button>
             ) : (
               <div className="mt-4 p-4 border rounded-xl bg-gray-50">
@@ -235,6 +309,9 @@ const DeliveryBoy = () => {
                   onChange={(e) => setOtp(e.target.value)}
                   value={otp}
                 />
+                {message && (
+                  <p className="text-center text-green-400">{message}</p>
+                )}
                 <button
                   className="w-full bg-orange-500 text-white py-2 rounded-lg font-semibold hover:bg-orange-600 transition-all"
                   onClick={verifyOtp}

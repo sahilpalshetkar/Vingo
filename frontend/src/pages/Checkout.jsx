@@ -13,6 +13,7 @@ import { FaMobileScreenButton } from "react-icons/fa6";
 import { FaCreditCard } from "react-icons/fa";
 import { serverUrl } from "../App";
 import { addMyOrder } from "../redux/userSlice";
+import { ClipLoader } from "react-spinners";
 
 function RecenterMap({ location }) {
   if (location.lat && location.lon) {
@@ -29,6 +30,7 @@ const Checkout = () => {
   );
   const [addressInput, setAddressInput] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const apikey = import.meta.env.VITE_GEOAPIKEY;
@@ -73,6 +75,8 @@ const Checkout = () => {
   };
 
   const handlePlaceOrder = async () => {
+    setLoading(true);
+
     try {
       const result = await axios.post(
         `${serverUrl}/api/order/place-order`,
@@ -89,16 +93,17 @@ const Checkout = () => {
         { withCredentials: true },
       );
 
-      if (paymentMethod == "cod") {
+      if (paymentMethod === "cod") {
         dispatch(addMyOrder(result.data));
         navigate("/order-placed");
       } else {
-        const orderId = result?.data.orderId;
-        const razorOrder = result?.data.razorOrder;
+        const { orderId, razorOrder } = result.data;
         openRazorpayWindow(orderId, razorOrder);
       }
     } catch (error) {
-      console.log(error?.response?.data);
+      console.log(error.response?.data);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -270,8 +275,15 @@ const Checkout = () => {
         <button
           className="w-full bg-[#ff4d2d] hover:bg-[#e64526] text-white py-3 rounded-xl font-semibold cursor-pointer"
           onClick={handlePlaceOrder}
+          disabled={loading}
         >
-          {paymentMethod == "cod" ? "Place Order" : "Pay & Place Order"}
+          {loading ? (
+            <ClipLoader size={20} color="white" />
+          ) : paymentMethod == "cod" ? (
+            "Place Order"
+          ) : (
+            "Pay & Place Order"
+          )}
         </button>
       </div>
     </div>
